@@ -7,6 +7,9 @@ Returns: HTTP response dict
 import json
 import random
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from typing import Dict, Any
 import psycopg2
@@ -14,6 +17,45 @@ from psycopg2.extras import RealDictCursor
 
 def generate_code() -> str:
     return str(random.randint(1000, 9999))
+
+def send_email(to_email: str, code: str) -> bool:
+    try:
+        smtp_host = os.environ.get('SMTP_HOST')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_user = os.environ.get('SMTP_USER')
+        smtp_password = os.environ.get('SMTP_PASSWORD')
+        
+        if not all([smtp_host, smtp_user, smtp_password]):
+            return False
+        
+        msg = MIMEMultipart()
+        msg['From'] = f"News of World <{smtp_user}>"
+        msg['To'] = to_email
+        msg['Subject'] = 'News of World | Code'
+        
+        body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; padding: 20px;">
+                <h2 style="color: #1e3a8a;">News of World</h2>
+                <p>Ваш код для входа:</p>
+                <h1 style="color: #ef4444; letter-spacing: 5px;">{code}</h1>
+                <p>Код действителен 10 минут.</p>
+            </body>
+        </html>
+        """
+        
+        msg.attach(MIMEText(body, 'html'))
+        
+        server = smtplib.SMTP(smtp_host, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+        server.quit()
+        
+        return True
+    except Exception as e:
+        print(f"Email send error: {e}")
+        return False
 
 def get_db_connection():
     return psycopg2.connect(os.environ['DATABASE_URL'])
@@ -56,10 +98,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 )
                 conn.commit()
                 
+                email_sent = send_email(email, code)
+                
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'message': 'Code sent', 'code': code}),
+                    'body': json.dumps({'message': 'Code sent', 'email_sent': email_sent}),
                     'isBase64Encoded': False
                 }
             
@@ -93,7 +137,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'user': dict(user)}),
+                    'body': json.dumps({'user': dict(user)}, default=str),
                     'isBase64Encoded': False
                 }
         
@@ -106,7 +150,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     return {
                         'statusCode': 200,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'user': dict(user)}),
+                        'body': json.dumps({'user': dict(user)}, default=str),
                         'isBase64Encoded': False
                     }
             return {'statusCode': 404, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'User not found'}), 'isBase64Encoded': False}
@@ -135,7 +179,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'user': dict(user)}),
+                    'body': json.dumps({'user': dict(user)}, default=str),
                     'isBase64Encoded': False
                 }
         
