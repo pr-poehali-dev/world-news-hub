@@ -1,0 +1,23 @@
+{
+  "tests": [
+
+    {
+      "name": "Create news post",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "title": "Test News",
+        "content": "Test content",
+        "category": "World"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "news": {
+          "title": "string",
+          "content": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

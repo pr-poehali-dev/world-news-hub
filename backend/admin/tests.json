@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "Get app settings",
+      "method": "GET",
+      "path": "/?action=settings",
+      "headers": {
+        "x-admin-password": "Exx1"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "about": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Post as Spawner",
+      "method": "POST",
+      "path": "/",
+      "headers": {
+        "x-admin-password": "Exx1"
+      },
+      "body": {
+        "action": "post_as_spawner",
+        "title": "Test Announcement",
+        "content": "System message",
+        "category": "Announcement"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "news": {
+          "title": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
